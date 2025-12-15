@@ -69,6 +69,33 @@ function makeNewBranchFromCurrent(cwd: string, newBranchName: string): Promise<v
     });
 }
 
+function hasUncommittedChanges(cwd: string): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    exec("git status --porcelain", { cwd }, (err, stdout) => {
+      if (err) return reject(err);
+      resolve(stdout.trim().length > 0);
+    });
+  });
+}
+
+function updateRefs(cwd: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        exec(`git fetch`, { cwd }, (err) => {
+            if (err) return reject(err);
+            resolve();
+        })
+    })
+}
+
+function resetHardOrigin(cwd: string, branch: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        exec(`git reset --hard origin/${branch}`, { cwd }, (err) => {
+            if (err) return reject(err);
+            resolve();
+        })
+    })
+}
+
 function changeCommitTime(cwd: string, newDate?: Date): Promise<void> {
     if (!newDate) {
         newDate = new Date();
@@ -109,5 +136,8 @@ export {
     deleteBranch,
     changeCommitTime,
     makeNewBranchFromCurrent,
-    isGitRepo
+    updateRefs,
+    resetHardOrigin,
+    isGitRepo,
+    hasUncommittedChanges,
 }
