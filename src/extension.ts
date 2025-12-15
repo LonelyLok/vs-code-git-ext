@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { isGitInstalled, isGitRepo, getGitBranches, checkoutBranch, getLastGitCommits, changeCommitTime, deleteBranch, makeNewBranchFromCurrent } from './git-helper';
+import { isGitInstalled, isGitRepo, getGitBranches, checkoutBranch, getLastGitCommits, changeCommitTime, deleteBranch, makeNewBranchFromCurrent, updateRefs, resetHardOrigin, hasUncommittedChanges } from './git-helper';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -91,10 +91,50 @@ export function activate(context: vscode.ExtensionContext) {
       }
     })
   )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('myExt.fetchAndResetHardOrigin', async (element) => {
+      if (!element || !element.branchName) return;
+      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (!cwd) return;
+      try {
+        await updateRefs(cwd);
+        await resetHardOrigin(cwd, element.branchName);
+        vscode.window.showInformationMessage(`Fetched and reset hard origin for branch ${element.branchName}`);
+        treeDataProvider.refresh();
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`fetch and reset hard origin failed: ${e?.message ?? e}`);
+      }
+    })
+  )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('myExt.refreshView', () => {
+      treeDataProvider.refresh();
+    })
+  );
 }
 
 // This method is called when your extension is deactivated
 export function deactivate() { }
+
+class BranchTreeItem extends vscode.TreeItem {
+  readonly branchName: string;
+
+  constructor(
+    branchName: string,
+    isCurrent: boolean
+  ) {
+    super(
+      branchName,
+      isCurrent
+        ? vscode.TreeItemCollapsibleState.Expanded
+        : vscode.TreeItemCollapsibleState.None
+    );
+
+    this.branchName = branchName;
+  }
+}
 
 class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<void>();
@@ -123,6 +163,8 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
         vscode.TreeItemCollapsibleState.Expanded
       );
 
+      repoStatus.contextValue = "repoStatus"
+
       return [headline, gitStatus, repoStatus];
     }
 
@@ -130,8 +172,8 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
       const branches = await getGitBranches(pwd);
       return branches.map(branch => {
         const isCurrent = branch.startsWith('*');
-        const item = new vscode.TreeItem(branch, isCurrent ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None);
         const cleanBranch = isCurrent ? branch.slice(2).trim() : branch;
+        const item = new BranchTreeItem(cleanBranch, isCurrent);
         item.command = {
           command: 'myExt.checkoutBranch',
           title: 'Checkout Branch',
@@ -147,14 +189,20 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
     }
 
     if (element.contextValue === 'currentBranchItem') {
-      const items = await getLastGitCommits(pwd, 5);
-      return items.map((commit, i) => {
+      const lineItems = [];
+      const [items, hasChanges] = await Promise.all([getLastGitCommits(pwd, 5), hasUncommittedChanges(pwd)]);
+      if (hasChanges) {
+        lineItems.push(new vscode.TreeItem('Uncommitted Changes Present', vscode.TreeItemCollapsibleState.None));
+      }
+      for (let i = 0; i < items.length; i++) {
+        const commit = items[i];
         const commitItem = new vscode.TreeItem(commit, vscode.TreeItemCollapsibleState.None);
         if (i === 0) {
           commitItem.contextValue = 'commitItem';
         }
-        return commitItem;
-      });
+        lineItems.push(commitItem);
+      }
+      return lineItems;
     }
 
     return [];

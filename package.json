@@ -1,8 +1,8 @@
 {
   "name": "vs-code-git-ext",
   "displayName": "vs-code-git-ext",
-  "description": "",
-  "version": "0.0.1",
+  "description": "VS Code Extension for custom git commands",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.104.0"
   },
@@ -28,6 +28,15 @@
       {
         "command": "myExt.makeNewBranchFromCurrent",
         "title": "Make a new branch from current branch"
+      },
+      {
+        "command": "myExt.fetchAndResetHardOrigin",
+        "title": "Fetch and reset hard to origin"
+      },
+      {
+        "command": "myExt.refreshView",
+        "title": "Refresh view",
+        "icon": "$(refresh)"
       }
     ],
     "viewsContainers": {
@@ -64,6 +73,16 @@
           "command": "myExt.makeNewBranchFromCurrent",
           "when": "viewItem == currentBranchItem",
           "group": "navigation"
+        },
+        {
+          "command": "myExt.fetchAndResetHardOrigin",
+          "when": "viewItem == currentBranchItem",
+          "group": "navigation"
+        },
+        {
+          "command": "myExt.refreshView",
+          "when": "viewItem == repoStatus",
+          "group": "inline"
         }
       ]
     }
