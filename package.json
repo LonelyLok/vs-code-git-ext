@@ -34,6 +34,10 @@
         "title": "Fetch and reset hard to origin"
       },
       {
+        "command": "myExt.renameBranch",
+        "title": "Rename branch name"
+      },
+      {
         "command": "myExt.refreshView",
         "title": "Refresh view",
         "icon": "$(refresh)"
@@ -71,6 +75,11 @@
         },
         {
           "command": "myExt.makeNewBranchFromCurrent",
+          "when": "viewItem == currentBranchItem",
+          "group": "navigation"
+        },
+        {
+          "command": "myExt.renameBranch",
           "when": "viewItem == currentBranchItem",
           "group": "navigation"
         },

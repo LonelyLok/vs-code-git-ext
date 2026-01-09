@@ -69,6 +69,15 @@ function makeNewBranchFromCurrent(cwd: string, newBranchName: string): Promise<v
     });
 }
 
+function renameBranch(cwd: string, newBranchName: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        exec(`git branch -m ${newBranchName}`, { cwd }, (err) => {
+            if (err) return reject(err);
+            resolve();
+        });
+    });
+}
+
 function hasUncommittedChanges(cwd: string): Promise<boolean> {
   return new Promise((resolve, reject) => {
     exec("git status --porcelain", { cwd }, (err, stdout) => {
@@ -133,6 +142,7 @@ export {
     getGitBranches,
     getLastGitCommits,
     checkoutBranch,
+    renameBranch,
     deleteBranch,
     changeCommitTime,
     makeNewBranchFromCurrent,

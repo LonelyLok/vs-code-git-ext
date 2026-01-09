@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { isGitInstalled, isGitRepo, getGitBranches, checkoutBranch, getLastGitCommits, changeCommitTime, deleteBranch, makeNewBranchFromCurrent, updateRefs, resetHardOrigin, hasUncommittedChanges } from './git-helper';
+import { isGitInstalled, isGitRepo, getGitBranches, checkoutBranch, getLastGitCommits, changeCommitTime, deleteBranch, makeNewBranchFromCurrent, updateRefs, resetHardOrigin, hasUncommittedChanges, renameBranch } from './git-helper';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -47,6 +47,8 @@ export function activate(context: vscode.ExtensionContext) {
       if (!cwd) return;
       try {
         await changeCommitTime(cwd);
+        vscode.window.showInformationMessage(`Changed commit time to now`);
+        treeDataProvider.refresh();
       } catch (e: any) {
         vscode.window.showErrorMessage(`Change commit time failed: ${e?.message ?? e}`);
       }
@@ -88,6 +90,29 @@ export function activate(context: vscode.ExtensionContext) {
         treeDataProvider.refresh();
       } catch (e: any) {
         vscode.window.showErrorMessage(`Create new branch failed: ${e?.message ?? e}`);
+      }
+    })
+  )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('myExt.renameBranch', async () => {
+      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+      if (!cwd) return;
+      const newBranchName = await vscode.window.showInputBox({
+        title: 'Rename Branch To',
+        prompt: 'Rename Branch To',
+        placeHolder: 'example',
+      });
+      if (!newBranchName) {
+        vscode.window.showErrorMessage('Branch name is required');
+        return;
+      }
+      try {
+        await renameBranch(cwd, newBranchName);
+        vscode.window.showInformationMessage(`Renamed branch to ${newBranchName}`);
+        treeDataProvider.refresh();
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Rename branch failed: ${e?.message ?? e}`);
       }
     })
   )
