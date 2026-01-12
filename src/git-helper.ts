@@ -23,6 +23,15 @@ function getGitBranches(cwd: string): Promise<string[]> {
     });
 }
 
+function getCurrentBranch(cwd: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+        exec('git branch --show-current', { cwd }, (err, stdout) => {
+            if (err) return reject(err);
+            resolve(stdout.trim());
+        })
+    })
+}
+
 function getLastGitCommits(cwd: string, limit = 5): Promise<string[]> {
     return new Promise((resolve, reject) => {
         exec(
@@ -150,4 +159,5 @@ export {
     resetHardOrigin,
     isGitRepo,
     hasUncommittedChanges,
+    getCurrentBranch,
 }
