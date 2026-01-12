@@ -1,11 +1,11 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { isGitInstalled, isGitRepo, getGitBranches, checkoutBranch, getLastGitCommits, changeCommitTime, deleteBranch, makeNewBranchFromCurrent, updateRefs, resetHardOrigin, hasUncommittedChanges, renameBranch } from './git-helper';
+import { isGitInstalled, isGitRepo, getGitBranches, checkoutBranch, getLastGitCommits, changeCommitTime, deleteBranch, makeNewBranchFromCurrent, updateRefs, resetHardOrigin, hasUncommittedChanges, renameBranch, getCurrentBranch } from './git-helper';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
 
   // Use the console to output diagnostic information (console.log) and errors (console.error)
   // This line of code will only be executed once when your extension is activated
@@ -23,6 +23,8 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(disposable);
 
   const treeDataProvider = new MyTreeProvider();
+  await treeDataProvider.init();
+  await treeDataProvider.startBackGroundPoll(); 
   vscode.window.createTreeView('myExtView', { treeDataProvider });
 
   context.subscriptions.push(
@@ -156,7 +158,6 @@ class BranchTreeItem extends vscode.TreeItem {
         ? vscode.TreeItemCollapsibleState.Expanded
         : vscode.TreeItemCollapsibleState.None
     );
-
     this.branchName = branchName;
   }
 }
@@ -164,6 +165,50 @@ class BranchTreeItem extends vscode.TreeItem {
 class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<void>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+
+  private isGitInstalled = false;
+  private isGitRepo = false;
+  private currentBranch = '';
+  private intervalMs = 3000;
+  private pollTimer?: NodeJS.Timeout;
+
+  async init() {
+    const folders = vscode.workspace.workspaceFolders;
+    const pwd = folders?.length ? folders[0].uri.fsPath : 'unknown';
+    this.isGitInstalled = await isGitInstalled();
+    if (this.isGitInstalled) {
+      this.isGitRepo = isGitRepo(pwd);
+    }
+  }
+
+  async startBackGroundPoll() {
+    if (!this.isGitInstalled || !this.isGitRepo) {
+      return;
+    }
+    const folders = vscode.workspace.workspaceFolders;
+    const pwd = folders?.length ? folders[0].uri.fsPath : 'unknown';
+
+    const poll = async () => {
+      try {
+        const branch = await getCurrentBranch(pwd);
+        if (this.currentBranch && branch !== this.currentBranch) {
+          // this.currentBranch = branch;
+          vscode.window.showInformationMessage(`Branch change detected (${this.currentBranch} -> ${branch}), refreshing view...`);
+          this.refresh();
+        }
+      } catch (err) {
+        // ignore transient git errors
+        console.log(err)
+      }
+    };
+
+    await poll();
+
+    // then poll
+    this.pollTimer = setInterval(() => {
+      void poll();
+    }, this.intervalMs);
+  }
 
   async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
     const folders = vscode.workspace.workspaceFolders;
@@ -206,6 +251,7 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
         };
         if (isCurrent) {
           item.contextValue = 'currentBranchItem';
+          this.currentBranch = cleanBranch;
         } else {
           item.contextValue = 'nonCurrentBranchItem';
         }
