@@ -168,6 +168,7 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
 
   private isGitInstalled = false;
   private isGitRepo = false;
+  private isUnCommittedChanges = false;
   private currentBranch = '';
   private intervalMs = 3000;
   private pollTimer?: NodeJS.Timeout;
@@ -190,10 +191,17 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
 
     const poll = async () => {
       try {
-        const branch = await getCurrentBranch(pwd);
+        const [branch, commitChanged] = await Promise.all([
+          getCurrentBranch(pwd),
+          hasUncommittedChanges(pwd)
+        ])
         if (this.currentBranch && branch !== this.currentBranch) {
           // this.currentBranch = branch;
           vscode.window.showInformationMessage(`Branch change detected (${this.currentBranch} -> ${branch}), refreshing view...`);
+          this.refresh();
+        }
+        if (this.isUnCommittedChanges !== commitChanged) {
+          vscode.window.showInformationMessage(`Uncommitted changes detected on branch ${branch}, refreshing view...`);
           this.refresh();
         }
       } catch (err) {
@@ -262,8 +270,11 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
     if (element.contextValue === 'currentBranchItem') {
       const lineItems = [];
       const [items, hasChanges] = await Promise.all([getLastGitCommits(pwd, 5), hasUncommittedChanges(pwd)]);
+      this.isUnCommittedChanges = hasChanges;
       if (hasChanges) {
-        lineItems.push(new vscode.TreeItem('Uncommitted Changes Present', vscode.TreeItemCollapsibleState.None));
+        const treeItemUncommitted = new vscode.TreeItem('Uncommitted Changes Present', vscode.TreeItemCollapsibleState.None)
+        treeItemUncommitted.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.red'));
+        lineItems.push(treeItemUncommitted);
       }
       for (let i = 0; i < items.length; i++) {
         const commit = items[i];
