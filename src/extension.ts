@@ -1,31 +1,19 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { isGitInstalled, isGitRepo, getGitBranches, checkoutBranch, getLastGitCommits, changeCommitTime, deleteBranch, makeNewBranchFromCurrent, updateRefs, resetHardOrigin, hasUncommittedChanges, renameBranch, getCurrentBranch } from './git-helper';
+import { isGitInstalled, isGitRepo, getGitBranches, checkoutBranch, getLastGitCommits, changeCommitTime, deleteBranch, makeNewBranchFromCurrent, updateRefs, resetHardOrigin, hasUncommittedChanges, renameBranch, getCurrentBranch, hasStagedChanges, stageAll, unstageAll, restoreAll } from './git-helper';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
-
-  // Use the console to output diagnostic information (console.log) and errors (console.error)
-  // This line of code will only be executed once when your extension is activated
-  console.log('Congratulations, your extension "vs-code-git-ext" is now active!');
-
-  // The command has been defined in the package.json file
-  // Now provide the implementation of the command with registerCommand
-  // The commandId parameter must match the command field in package.json
-  const disposable = vscode.commands.registerCommand('vs-code-git-ext.helloWorld', () => {
-    // The code you place here will be executed every time your command is executed
-    // Display a message box to the user
-    vscode.window.showInformationMessage('Hello World from vs-code-git-ext!');
-  });
-
-  context.subscriptions.push(disposable);
-
   const treeDataProvider = new MyTreeProvider();
   await treeDataProvider.init();
-  await treeDataProvider.startBackGroundPoll(); 
+  await treeDataProvider.startBackGroundPoll();
   vscode.window.createTreeView('myExtView', { treeDataProvider });
+
+  context.subscriptions.push(vscode.commands.registerCommand('myExt.testing', () => {
+    vscode.window.showInformationMessage('test command executed');
+  }));
 
   context.subscriptions.push(
     vscode.commands.registerCommand('myExt.checkoutBranch', async (branch: string) => {
@@ -136,6 +124,48 @@ export async function activate(context: vscode.ExtensionContext) {
   )
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('myExt.stageAllChanges', async () => {
+      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (!cwd) return;
+      try {
+        await stageAll(cwd);
+        vscode.window.showInformationMessage(`Staged all changes`);
+        treeDataProvider.refresh();
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Stage all changes failed: ${e?.message ?? e}`);
+      }
+    })
+  )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('myExt.unstageAllChanges', async () => {
+      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (!cwd) return;
+      try {
+        await unstageAll(cwd);
+        vscode.window.showInformationMessage(`Unstaged all changes`);
+        treeDataProvider.refresh();
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Unstage all changes failed: ${e?.message ?? e}`);
+      }
+    })
+  )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('myExt.restoreAllChanges', async () => {
+      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (!cwd) return;
+      try {
+        await restoreAll(cwd);
+        vscode.window.showInformationMessage(`Restored all changes`);
+        treeDataProvider.refresh();
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Restore all changes failed: ${e?.message ?? e}`);
+      }
+    })
+  )
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('myExt.refreshView', () => {
       treeDataProvider.refresh();
     })
@@ -172,6 +202,9 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private currentBranch = '';
   private intervalMs = 3000;
   private pollTimer?: NodeJS.Timeout;
+
+  private validRepoText = 'This is a Git repository ✅';
+  private invalidRepoText = 'This is not a Git repository ❌';
 
   async init() {
     const folders = vscode.workspace.workspaceFolders;
@@ -237,7 +270,7 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
       const isRepo = isGitRepo(pwd);
 
       const repoStatus = new vscode.TreeItem(
-        isRepo ? 'This is a Git repository ✅' : 'This is not a Git repository ❌',
+        isRepo ? this.validRepoText : this.invalidRepoText,
         vscode.TreeItemCollapsibleState.Expanded
       );
 
@@ -246,7 +279,7 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
       return [headline, gitStatus, repoStatus];
     }
 
-    if (element.label === 'This is a Git repository ✅') {
+    if (element.label === this.validRepoText) {
       const branches = await getGitBranches(pwd);
       return branches.map(branch => {
         const isCurrent = branch.startsWith('*');
@@ -273,7 +306,10 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
       this.isUnCommittedChanges = hasChanges;
       if (hasChanges) {
         const treeItemUncommitted = new vscode.TreeItem('Uncommitted Changes Present', vscode.TreeItemCollapsibleState.None)
-        treeItemUncommitted.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.red'));
+        const isStaged = await hasStagedChanges(pwd);
+        const iconColor = isStaged ? 'charts.yellow' : 'charts.red';
+        treeItemUncommitted.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor(iconColor));
+        treeItemUncommitted.contextValue = 'uncommittedChangesItem';
         lineItems.push(treeItemUncommitted);
       }
       for (let i = 0; i < items.length; i++) {

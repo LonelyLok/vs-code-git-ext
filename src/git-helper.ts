@@ -88,12 +88,53 @@ function renameBranch(cwd: string, newBranchName: string): Promise<void> {
 }
 
 function hasUncommittedChanges(cwd: string): Promise<boolean> {
-  return new Promise((resolve, reject) => {
-    exec("git status --porcelain", { cwd }, (err, stdout) => {
-      if (err) return reject(err);
-      resolve(stdout.trim().length > 0);
+    return new Promise((resolve, reject) => {
+        exec("git status --porcelain", { cwd }, (err, stdout) => {
+            if (err) return reject(err);
+            resolve(stdout.trim().length > 0);
+        });
     });
-  });
+}
+
+function stageAll(cwd: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        exec("git add .", { cwd }, (err) => {
+            if (err) return reject(err);
+            resolve();
+        });
+    });
+}
+
+function unstageAll(cwd: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        exec("git restore --staged .", { cwd }, (err) => {
+            if (err) return reject(err);
+            resolve();
+        });
+    });
+}
+
+function hasStagedChanges(cwd: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+        exec("git diff --cached --quiet", { cwd }, (err) => {
+            // exit code 1 = staged changes exist
+            // exit code 0 = no staged changes
+            if (err) {
+                if (err.code === 1) return resolve(true);
+                return reject(err);
+            }
+            resolve(false);
+        });
+    });
+}
+
+function restoreAll(cwd: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        exec("git restore .", { cwd }, (err) => {
+            if (err) return reject(err);
+            resolve();
+        });
+    });
 }
 
 function updateRefs(cwd: string): Promise<void> {
@@ -159,5 +200,9 @@ export {
     resetHardOrigin,
     isGitRepo,
     hasUncommittedChanges,
+    hasStagedChanges,
     getCurrentBranch,
+    stageAll,
+    unstageAll,
+    restoreAll
 }

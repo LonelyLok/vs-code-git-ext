@@ -14,8 +14,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "vs-code-git-ext.helloWorld",
-        "title": "Hello World"
+        "command": "myExt.testing",
+        "title": "testing"
       },
       {
         "command": "myExt.changeCommitTime",
@@ -41,6 +41,18 @@
         "command": "myExt.refreshView",
         "title": "Refresh view",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "myExt.stageAllChanges",
+        "title": "Stage all changes"
+      },
+      {
+        "command": "myExt.unstageAllChanges",
+        "title": "Unstage all changes"
+      },
+      {
+        "command": "myExt.restoreAllChanges",
+        "title": "Restore all changes"
       }
     ],
     "viewsContainers": {
@@ -92,6 +104,21 @@
           "command": "myExt.refreshView",
           "when": "viewItem == repoStatus",
           "group": "inline"
+        },
+        {
+          "command": "myExt.stageAllChanges",
+          "when": "viewItem == uncommittedChangesItem",
+          "group": "navigation@10"
+        },
+        {
+          "command": "myExt.unstageAllChanges",
+          "when": "viewItem == uncommittedChangesItem",
+          "group": "navigation@20"
+        },
+         {
+          "command": "myExt.restoreAllChanges",
+          "when": "viewItem == uncommittedChangesItem",
+          "group": "navigation@30"
         }
       ]
     }
