@@ -221,20 +221,20 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
     }
     const folders = vscode.workspace.workspaceFolders;
     const pwd = folders?.length ? folders[0].uri.fsPath : 'unknown';
-
     const poll = async () => {
       try {
         const [branch, commitChanged] = await Promise.all([
           getCurrentBranch(pwd),
           hasUncommittedChanges(pwd)
         ])
-        if (this.currentBranch && branch !== this.currentBranch) {
-          // this.currentBranch = branch;
+        if (this.currentBranch !== branch) {
           vscode.window.showInformationMessage(`Branch change detected (${this.currentBranch} -> ${branch}), refreshing view...`);
+          this.currentBranch = branch;
           this.refresh();
         }
         if (this.isUnCommittedChanges !== commitChanged) {
           vscode.window.showInformationMessage(`Uncommitted changes detected on branch ${branch}, refreshing view...`);
+          this.isUnCommittedChanges = commitChanged;
           this.refresh();
         }
       } catch (err) {
@@ -332,5 +332,9 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
 
   refresh() {
     this._onDidChangeTreeData.fire();
+  }
+
+  setCuurrentBranch(branch: string) {
+    this.currentBranch = branch;
   }
 }
