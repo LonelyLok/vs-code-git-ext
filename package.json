@@ -43,6 +43,10 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "myExt.seeStatusOnTerminal",
+        "title": "See status on terminal"
+      },
+      {
         "command": "myExt.stageAllChanges",
         "title": "Stage all changes"
       },
@@ -106,19 +110,24 @@
           "group": "inline"
         },
         {
-          "command": "myExt.stageAllChanges",
+          "command": "myExt.seeStatusOnTerminal",
           "when": "viewItem == uncommittedChangesItem",
           "group": "navigation@10"
         },
         {
-          "command": "myExt.unstageAllChanges",
+          "command": "myExt.stageAllChanges",
           "when": "viewItem == uncommittedChangesItem",
           "group": "navigation@20"
+        },
+        {
+          "command": "myExt.unstageAllChanges",
+          "when": "viewItem == uncommittedChangesItem",
+          "group": "navigation@30"
         },
          {
           "command": "myExt.restoreAllChanges",
           "when": "viewItem == uncommittedChangesItem",
-          "group": "navigation@30"
+          "group": "navigation@40"
         }
       ]
     }
