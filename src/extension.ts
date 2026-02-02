@@ -268,11 +268,11 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
         const isBranchChanged = this.currentBranch !== branch;
         const isCommitChanged = this.isUnCommittedChanges !== commitChanged;
         if (isBranchChanged) {
-          vscode.window.showInformationMessage(`Branch change detected (${this.currentBranch} -> ${branch}), refreshing view...`);
+          // vscode.window.showInformationMessage(`Branch change detected (${this.currentBranch} -> ${branch}), refreshing view...`);
           this.currentBranch = branch;
         }
         if (isCommitChanged) {
-          vscode.window.showInformationMessage(`Uncommitted changes detected on branch ${branch}, refreshing view...`);
+          // vscode.window.showInformationMessage(`Uncommitted changes detected on branch ${branch}, refreshing view...`);
           this.isUnCommittedChanges = commitChanged;
         }
         if ([isBranchChanged, isCommitChanged].some(v => v)) {
