@@ -44,11 +44,16 @@
       },
       {
         "command": "myExt.seeStatusOnTerminal",
-        "title": "See status on terminal"
+        "title": "See status on terminal",
+        "icon": "$(info)"
       },
       {
         "command": "myExt.stageAllChanges",
         "title": "Stage all changes"
+      },
+      {
+        "command": "myExt.commitWithMessage",
+        "title": "Commit with message"
       },
       {
         "command": "myExt.unstageAllChanges",
@@ -105,14 +110,14 @@
           "group": "navigation"
         },
         {
-          "command": "myExt.refreshView",
+          "command": "myExt.seeStatusOnTerminal",
           "when": "viewItem == repoStatus",
-          "group": "inline"
+          "group": "inline@1"
         },
         {
-          "command": "myExt.seeStatusOnTerminal",
-          "when": "viewItem == uncommittedChangesItem",
-          "group": "navigation@10"
+          "command": "myExt.refreshView",
+          "when": "viewItem == repoStatus",
+          "group": "inline@2"
         },
         {
           "command": "myExt.stageAllChanges",
@@ -120,14 +125,19 @@
           "group": "navigation@20"
         },
         {
-          "command": "myExt.unstageAllChanges",
+          "command": "myExt.commitWithMessage",
           "when": "viewItem == uncommittedChangesItem",
           "group": "navigation@30"
         },
-         {
+        {
+          "command": "myExt.unstageAllChanges",
+          "when": "viewItem == uncommittedChangesItem",
+          "group": "y_unstaged@1"
+        },
+        {
           "command": "myExt.restoreAllChanges",
           "when": "viewItem == uncommittedChangesItem",
-          "group": "navigation@40"
+          "group": "z_restore@1"
         }
       ]
     }
