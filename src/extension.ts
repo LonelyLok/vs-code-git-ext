@@ -24,7 +24,7 @@ export async function activate(context: vscode.ExtensionContext) {
       try {
         await checkoutBranch(cwd, target);
         vscode.window.showInformationMessage(`Switched to ${target}`);
-        treeDataProvider.refresh(); // 🔁 refresh so the "*" moves
+        treeDataProvider.refresh({ isRefreshTerminal: true }); // 🔁 refresh so the "*" moves
       } catch (e: any) {
         vscode.window.showErrorMessage(`Checkout failed: ${e?.message ?? e}`);
       }
@@ -77,7 +77,7 @@ export async function activate(context: vscode.ExtensionContext) {
       try {
         await makeNewBranchFromCurrent(cwd, newBranchName);
         vscode.window.showInformationMessage(`Created and switched to new branch ${newBranchName}`);
-        treeDataProvider.refresh();
+        treeDataProvider.refresh({ isRefreshTerminal: true });
       } catch (e: any) {
         vscode.window.showErrorMessage(`Create new branch failed: ${e?.message ?? e}`);
       }
@@ -100,7 +100,7 @@ export async function activate(context: vscode.ExtensionContext) {
       try {
         await renameBranch(cwd, newBranchName);
         vscode.window.showInformationMessage(`Renamed branch to ${newBranchName}`);
-        treeDataProvider.refresh();
+        treeDataProvider.refresh({ isRefreshTerminal: true });
       } catch (e: any) {
         vscode.window.showErrorMessage(`Rename branch failed: ${e?.message ?? e}`);
       }
@@ -119,6 +119,20 @@ export async function activate(context: vscode.ExtensionContext) {
         treeDataProvider.refresh();
       } catch (e: any) {
         vscode.window.showErrorMessage(`fetch and reset hard origin failed: ${e?.message ?? e}`);
+      }
+    })
+  )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('myExt.seeStatusOnTerminal', async () => {
+      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      const terminal = vscode?.window?.activeTerminal
+      if (!cwd || !terminal) return;
+      try {
+        terminal.sendText('git status');
+        treeDataProvider.refresh();
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Check status failed: ${e?.message ?? e}`);
       }
     })
   )
@@ -167,7 +181,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('myExt.refreshView', () => {
-      treeDataProvider.refresh();
+      treeDataProvider.refresh({ isRefreshTerminal: true });
     })
   );
 }
@@ -227,14 +241,18 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
           getCurrentBranch(pwd),
           hasUncommittedChanges(pwd)
         ])
-        if (this.currentBranch !== branch) {
+
+        const isBranchChanged = this.currentBranch !== branch;
+        const isCommitChanged = this.isUnCommittedChanges !== commitChanged;
+        if (isBranchChanged) {
           vscode.window.showInformationMessage(`Branch change detected (${this.currentBranch} -> ${branch}), refreshing view...`);
           this.currentBranch = branch;
-          this.refresh();
         }
-        if (this.isUnCommittedChanges !== commitChanged) {
+        if (isCommitChanged) {
           vscode.window.showInformationMessage(`Uncommitted changes detected on branch ${branch}, refreshing view...`);
           this.isUnCommittedChanges = commitChanged;
+        }
+        if ([isBranchChanged, isCommitChanged].some(v => v)) {
           this.refresh();
         }
       } catch (err) {
@@ -330,8 +348,15 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
     return element;
   }
 
-  refresh() {
+  refresh(opt?: { isRefreshTerminal?: boolean }) {
     this._onDidChangeTreeData.fire();
+    if (opt?.isRefreshTerminal) {
+      const terminal = vscode?.window?.activeTerminal
+      if (terminal) {
+        terminal.sendText('');
+      }
+    }
+
   }
 
   setCuurrentBranch(branch: string) {
