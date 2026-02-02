@@ -182,6 +182,15 @@ function changeCommitTime(cwd: string, newDate?: Date): Promise<void> {
     });
 }
 
+function commitWithMessage(cwd: string, message: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        exec(`git commit -m "${message}"`, { cwd }, (err) => {
+            if (err) return reject(err);
+            resolve();
+        });
+    });
+}
+
 
 function isGitRepo(dir: string): boolean {
     return fs.existsSync(path.join(dir, '.git'));
@@ -204,5 +213,6 @@ export {
     getCurrentBranch,
     stageAll,
     unstageAll,
-    restoreAll
+    restoreAll,
+    commitWithMessage
 }

@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { isGitInstalled, isGitRepo, getGitBranches, checkoutBranch, getLastGitCommits, changeCommitTime, deleteBranch, makeNewBranchFromCurrent, updateRefs, resetHardOrigin, hasUncommittedChanges, renameBranch, getCurrentBranch, hasStagedChanges, stageAll, unstageAll, restoreAll } from './git-helper';
+import { isGitInstalled, isGitRepo, getGitBranches, checkoutBranch, getLastGitCommits, changeCommitTime, deleteBranch, makeNewBranchFromCurrent, updateRefs, resetHardOrigin, hasUncommittedChanges, renameBranch, getCurrentBranch, hasStagedChanges, stageAll, unstageAll, restoreAll, commitWithMessage } from './git-helper';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -180,6 +180,29 @@ export async function activate(context: vscode.ExtensionContext) {
   )
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('myExt.commitWithMessage', async () => {
+      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+      if (!cwd) return;
+      const commitMessage = await vscode.window.showInputBox({
+        title: 'Commit Message',
+        prompt: 'Enter commit message',
+        placeHolder: 'example',
+      });
+      if (!commitMessage) {
+        vscode.window.showErrorMessage('Commit message is required');
+        return;
+      }
+      try {
+        await commitWithMessage(cwd, commitMessage);
+        vscode.window.showInformationMessage(`Committed with message: ${commitMessage}`);
+        treeDataProvider.refresh();
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Commit with message failed: ${e?.message ?? e}`);
+      }
+    })
+  )
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('myExt.refreshView', () => {
       treeDataProvider.refresh({ isRefreshTerminal: true });
     })
@@ -326,7 +349,8 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
         const treeItemUncommitted = new vscode.TreeItem('Uncommitted Changes Present', vscode.TreeItemCollapsibleState.None)
         const isStaged = await hasStagedChanges(pwd);
         const iconColor = isStaged ? 'charts.yellow' : 'charts.red';
-        treeItemUncommitted.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor(iconColor));
+        const iconShape = isStaged ? 'triangle-up' : 'circle-filled';
+        treeItemUncommitted.iconPath = new vscode.ThemeIcon(iconShape, new vscode.ThemeColor(iconColor));
         treeItemUncommitted.contextValue = 'uncommittedChangesItem';
         lineItems.push(treeItemUncommitted);
       }
