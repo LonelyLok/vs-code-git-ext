@@ -223,7 +223,7 @@ export async function activate(context: vscode.ExtensionContext) {
   )
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('myExt.pushCurrentBranch', async (element) => {
+    vscode.commands.registerCommand('myExt.pushBranch', async (element) => {
       if(!element || !element.branchName) return;
       const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
       if (!cwd) return;
@@ -232,7 +232,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage(`Pushed branch ${element.branchName}`);
         treeDataProvider.refresh();
       } catch (e: any) {
-        vscode.window.showErrorMessage(`Push current branch failed: ${e?.message ?? e}`);
+        vscode.window.showErrorMessage(`Push branch failed: ${e?.message ?? e}`);
       }
     })
   )

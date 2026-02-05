@@ -38,8 +38,8 @@
         "title": "Rename branch name"
       },
       {
-        "command": "myExt.pushCurrentBranch",
-        "title": "Push current branch"
+        "command": "myExt.pushBranch",
+        "title": "Push branch"
       },
       {
         "command": "myExt.refreshView",
@@ -114,7 +114,7 @@
           "group": "a_navigation@0"
         },
         {
-          "command": "myExt.pushCurrentBranch",
+          "command": "myExt.pushBranch",
           "when": "viewItem == currentBranchItem",
           "group": "b_navigation@0"
         },
