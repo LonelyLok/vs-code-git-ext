@@ -191,6 +191,15 @@ function commitWithMessage(cwd: string, message: string): Promise<void> {
     });
 }
 
+function pushCurrentBranch(cwd: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        exec(`git push`, { cwd }, (err) => {
+            if (err) return reject(err);
+            resolve();
+        });
+    });
+}
+
 
 function isGitRepo(dir: string): boolean {
     return fs.existsSync(path.join(dir, '.git'));
@@ -214,5 +223,6 @@ export {
     stageAll,
     unstageAll,
     restoreAll,
-    commitWithMessage
+    commitWithMessage,
+    pushCurrentBranch
 }

@@ -1,7 +1,27 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { isGitInstalled, isGitRepo, getGitBranches, checkoutBranch, getLastGitCommits, changeCommitTime, deleteBranch, makeNewBranchFromCurrent, updateRefs, resetHardOrigin, hasUncommittedChanges, renameBranch, getCurrentBranch, hasStagedChanges, stageAll, unstageAll, restoreAll, commitWithMessage } from './git-helper';
+import {
+  isGitInstalled,
+  isGitRepo,
+  getGitBranches,
+  checkoutBranch,
+  getLastGitCommits,
+  changeCommitTime,
+  deleteBranch,
+  makeNewBranchFromCurrent,
+  updateRefs,
+  resetHardOrigin,
+  hasUncommittedChanges,
+  renameBranch,
+  getCurrentBranch,
+  hasStagedChanges,
+  stageAll,
+  unstageAll,
+  restoreAll,
+  commitWithMessage,
+  pushCurrentBranch
+} from './git-helper';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -198,6 +218,20 @@ export async function activate(context: vscode.ExtensionContext) {
         treeDataProvider.refresh();
       } catch (e: any) {
         vscode.window.showErrorMessage(`Commit with message failed: ${e?.message ?? e}`);
+      }
+    })
+  )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('myExt.pushCurrentBranch', async () => {
+      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+      if (!cwd) return;
+      try {
+        await pushCurrentBranch(cwd);
+        vscode.window.showInformationMessage(`Pushed current branch`);
+        treeDataProvider.refresh();
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Push current branch failed: ${e?.message ?? e}`);
       }
     })
   )
