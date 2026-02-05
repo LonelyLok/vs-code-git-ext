@@ -20,7 +20,7 @@ import {
   unstageAll,
   restoreAll,
   commitWithMessage,
-  pushCurrentBranch
+  pushBranch
 } from './git-helper';
 
 // This method is called when your extension is activated
@@ -223,12 +223,13 @@ export async function activate(context: vscode.ExtensionContext) {
   )
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('myExt.pushCurrentBranch', async () => {
+    vscode.commands.registerCommand('myExt.pushCurrentBranch', async (element) => {
+      if(!element || !element.branchName) return;
       const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
       if (!cwd) return;
       try {
-        await pushCurrentBranch(cwd);
-        vscode.window.showInformationMessage(`Pushed current branch`);
+        await pushBranch(cwd, element.branchName);
+        vscode.window.showInformationMessage(`Pushed branch ${element.branchName}`);
         treeDataProvider.refresh();
       } catch (e: any) {
         vscode.window.showErrorMessage(`Push current branch failed: ${e?.message ?? e}`);

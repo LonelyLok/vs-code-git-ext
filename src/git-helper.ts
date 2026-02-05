@@ -191,9 +191,9 @@ function commitWithMessage(cwd: string, message: string): Promise<void> {
     });
 }
 
-function pushCurrentBranch(cwd: string): Promise<void> {
+function pushBranch(cwd: string, branchName: string): Promise<void> {
     return new Promise((resolve, reject) => {
-        exec(`git push`, { cwd }, (err) => {
+        exec(`git push origin ${branchName}`, { cwd }, (err) => {
             if (err) return reject(err);
             resolve();
         });
@@ -224,5 +224,5 @@ export {
     unstageAll,
     restoreAll,
     commitWithMessage,
-    pushCurrentBranch
+    pushBranch
 }
