@@ -35,7 +35,7 @@ function getCurrentBranch(cwd: string): Promise<string> {
 function getLastGitCommits(cwd: string, limit = 5): Promise<string[]> {
     return new Promise((resolve, reject) => {
         exec(
-            `git log --no-color -n ${limit} --pretty=format:"%h %s (%ad)" --date=iso`,
+            `git log --no-color -n ${limit} --pretty=format:"%H %h %s (%ad)" --date=iso`,
             { cwd },
             (err, stdout) => {
                 if (err) return reject(err);
