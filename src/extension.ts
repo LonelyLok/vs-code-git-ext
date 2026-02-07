@@ -224,7 +224,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('myExt.pushBranch', async (element) => {
-      if(!element || !element.branchName) return;
+      if (!element || !element.branchName) return;
       const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
       if (!cwd) return;
       try {
@@ -233,6 +233,20 @@ export async function activate(context: vscode.ExtensionContext) {
         treeDataProvider.refresh();
       } catch (e: any) {
         vscode.window.showErrorMessage(`Push branch failed: ${e?.message ?? e}`);
+      }
+    })
+  )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('myExt.copyCommitSHA', async (element) => {
+      if (!element || !element.commitSHA) return;
+      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+      if (!cwd) return;
+      try {
+        await vscode.env.clipboard.writeText(element.commitSHA);
+        vscode.window.showInformationMessage(`Copied commit SHA ${element.commitSHA} to clipboard`);
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Copy commit SHA failed: ${e?.message ?? e}`);
       }
     })
   )
@@ -261,6 +275,17 @@ class BranchTreeItem extends vscode.TreeItem {
         : vscode.TreeItemCollapsibleState.None
     );
     this.branchName = branchName;
+  }
+}
+
+class CommitTreeItem extends vscode.TreeItem {
+  readonly commitSHA: string;
+  constructor(
+    label: string,
+    commitSHA: string
+  ) {
+    super(label, vscode.TreeItemCollapsibleState.None);
+    this.commitSHA = commitSHA;
   }
 }
 
@@ -390,9 +415,14 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
         lineItems.push(treeItemUncommitted);
       }
       for (let i = 0; i < items.length; i++) {
-        const commit = items[i];
-        const commitItem = new vscode.TreeItem(commit, vscode.TreeItemCollapsibleState.None);
+        const commitRaw = items[i];
+        const idx = commitRaw.indexOf(" ");
+        const longSHA = idx === -1 ? commitRaw : commitRaw.slice(0, idx);
+        const commit = idx === -1 ? "" : commitRaw.slice(idx + 1);
+        const commitItem = new CommitTreeItem(commit, longSHA);
         if (i === 0) {
+          commitItem.contextValue = 'latestCommitItem';
+        } else {
           commitItem.contextValue = 'commitItem';
         }
         lineItems.push(commitItem);

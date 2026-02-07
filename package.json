@@ -22,6 +22,10 @@
         "title": "Change commit time to now"
       },
       {
+        "command": "myExt.copyCommitSHA",
+        "title": "Copy SHA to clipboard"
+      },
+      {
         "command": "myExt.deleteBranchLocal",
         "title": "Delete branch locally"
       },
@@ -90,8 +94,13 @@
       "view/item/context": [
         {
           "command": "myExt.changeCommitTime",
-          "when": "viewItem == commitItem",
-          "group": "navigation"
+          "when": "viewItem == latestCommitItem",
+          "group": "a_navigation"
+        },
+        {
+          "command": "myExt.copyCommitSHA",
+          "when": "viewItem == latestCommitItem || viewItem == commitItem",
+          "group": "b_navigation"
         },
         {
           "command": "myExt.deleteBranchLocal",
