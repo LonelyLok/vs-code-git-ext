@@ -29,22 +29,23 @@ export async function activate(context: vscode.ExtensionContext) {
   const treeDataProvider = new MyTreeProvider();
   await treeDataProvider.init();
   await treeDataProvider.startBackGroundPoll();
-  vscode.window.createTreeView('myExtView', { treeDataProvider });
+  const treeView = vscode.window.createTreeView('myExtView', { treeDataProvider });
 
   context.subscriptions.push(vscode.commands.registerCommand('myExt.testing', () => {
     vscode.window.showInformationMessage('test command executed');
   }));
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('myExt.checkoutBranch', async (branch: string) => {
+    vscode.commands.registerCommand('myExt.checkoutBranch', async (item: BranchTreeItem) => {
       const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       if (!cwd) return;
 
-      const target = String(branch).trim();
+      const target = String(item.branchName).trim();
       try {
         await checkoutBranch(cwd, target);
         vscode.window.showInformationMessage(`Switched to ${target}`);
         treeDataProvider.refresh({ isRefreshTerminal: true }); // 🔁 refresh so the "*" moves
+        await treeView.reveal(item, { expand: true });
       } catch (e: any) {
         vscode.window.showErrorMessage(`Checkout failed: ${e?.message ?? e}`);
       }
@@ -263,10 +264,12 @@ export function deactivate() { }
 
 class BranchTreeItem extends vscode.TreeItem {
   readonly branchName: string;
+  readonly parent: vscode.TreeItem | undefined;
 
   constructor(
     branchName: string,
-    isCurrent: boolean
+    isCurrent: boolean,
+    parent: vscode.TreeItem | undefined = undefined
   ) {
     super(
       branchName,
@@ -275,6 +278,7 @@ class BranchTreeItem extends vscode.TreeItem {
         : vscode.TreeItemCollapsibleState.None
     );
     this.branchName = branchName;
+    this.parent = parent;
   }
 }
 
@@ -302,6 +306,15 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
 
   private validRepoText = 'This is a Git repository ✅';
   private invalidRepoText = 'This is not a Git repository ❌';
+
+  private repoStatusItem?: vscode.TreeItem;
+
+  getParent(element: vscode.TreeItem): vscode.TreeItem | undefined {
+    if (element instanceof BranchTreeItem) {
+      return element?.parent;
+    }
+    return undefined;
+  }
 
   async init() {
     const folders = vscode.workspace.workspaceFolders;
@@ -376,6 +389,7 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
       );
 
       repoStatus.contextValue = "repoStatus"
+      this.repoStatusItem = repoStatus;
 
       return [headline, gitStatus, repoStatus];
     }
@@ -385,11 +399,11 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
       return branches.map(branch => {
         const isCurrent = branch.startsWith('*');
         const cleanBranch = isCurrent ? branch.slice(2).trim() : branch;
-        const item = new BranchTreeItem(cleanBranch, isCurrent);
+        const item = new BranchTreeItem(cleanBranch, isCurrent, this.repoStatusItem);
         item.command = {
           command: 'myExt.checkoutBranch',
           title: 'Checkout Branch',
-          arguments: [cleanBranch]
+          arguments: [item]
         };
         if (isCurrent) {
           item.contextValue = 'currentBranchItem';
