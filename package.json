@@ -43,7 +43,8 @@
       },
       {
         "command": "myExt.pushBranch",
-        "title": "Push branch"
+        "title": "Push branch",
+        "enablement": "viewItem == currentBranchItem"
       },
       {
         "command": "myExt.refreshView",
@@ -90,6 +91,31 @@
         }
       ]
     },
+    "configuration": {
+      "title": "My Ext",
+      "properties": {
+        "myExt.pollIntervalMs": {
+          "type": "number",
+          "default": 3000,
+          "minimum": 1000,
+          "description": "How often (in ms) the extension checks for branch/working tree changes."
+        },
+        "myExt.commitsToShow": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "description": "How many latest commits to show for the current branch."
+        },
+        "myExt.branchPushBlacklist": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Blacklist for not allow push on branch."
+        }
+      }
+    },
     "menus": {
       "view/item/context": [
         {
@@ -109,22 +135,22 @@
         },
         {
           "command": "myExt.makeNewBranchFromCurrent",
-          "when": "viewItem == currentBranchItem",
+          "when": "viewItem == currentBranchItem || viewItem == currentBranchItemBlacklisted",
           "group": "z_navigation@10"
         },
         {
           "command": "myExt.renameBranch",
-          "when": "viewItem == currentBranchItem",
+          "when": "viewItem == currentBranchItem || viewItem == currentBranchItemBlacklisted",
           "group": "z_navigation@20"
         },
         {
           "command": "myExt.fetchAndResetHardOrigin",
-          "when": "viewItem == currentBranchItem",
+          "when": "viewItem == currentBranchItem || viewItem == currentBranchItemBlacklisted",
           "group": "a_navigation@0"
         },
         {
           "command": "myExt.pushBranch",
-          "when": "viewItem == currentBranchItem",
+          "when": "viewItem == currentBranchItem || viewItem == currentBranchItemBlacklisted",
           "group": "b_navigation@0"
         },
         {
