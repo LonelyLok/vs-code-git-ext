@@ -23,13 +23,40 @@ import {
   pushBranch
 } from './git-helper';
 
+type MyExtConfig = {
+  pollIntervalMs: number;
+  commitsToShow: number;
+  branchPushBlacklist: string[];
+};
+
+function readConfig(): MyExtConfig {
+  const config = vscode.workspace.getConfiguration('myExt');
+  const pollIntervalMs = Math.max(1000, config.get<number>('pollIntervalMs', 3000));
+  const commitsToShow = Math.max(1, config.get<number>('commitsToShow', 5));
+  const branchPushBlacklist = config.get<string[]>('branchPushBlacklist', []);
+  return { pollIntervalMs, commitsToShow, branchPushBlacklist };
+}
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
   const treeDataProvider = new MyTreeProvider();
+  treeDataProvider.applyConfig(readConfig());
   await treeDataProvider.init();
   await treeDataProvider.startBackGroundPoll();
   const treeView = vscode.window.createTreeView('myExtView', { treeDataProvider });
+  context.subscriptions.push(treeView);
+  context.subscriptions.push({ dispose: () => treeDataProvider.dispose() });
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (!event.affectsConfiguration('myExt')) {
+        return;
+      }
+      treeDataProvider.applyConfig(readConfig());
+      treeDataProvider.refresh();
+    })
+  );
 
   context.subscriptions.push(vscode.commands.registerCommand('myExt.testing', () => {
     vscode.window.showInformationMessage('test command executed');
@@ -106,13 +133,13 @@ export async function activate(context: vscode.ExtensionContext) {
   )
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('myExt.renameBranch', async () => {
+    vscode.commands.registerCommand('myExt.renameBranch', async (element) => {
       const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
       if (!cwd) return;
       const newBranchName = await vscode.window.showInputBox({
         title: 'Rename Branch To',
         prompt: 'Rename Branch To',
-        placeHolder: 'example',
+        value: element.branchName,
       });
       if (!newBranchName) {
         vscode.window.showErrorMessage('Branch name is required');
@@ -229,6 +256,9 @@ export async function activate(context: vscode.ExtensionContext) {
       const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
       if (!cwd) return;
       try {
+        if (treeDataProvider.branchPushBlacklist.includes(element.branchName)) {
+          throw new Error(`Branch ${element.branchName} is blacklisted from pushing`);
+        }
         await pushBranch(cwd, element.branchName);
         vscode.window.showInformationMessage(`Pushed branch ${element.branchName}`);
         treeDataProvider.refresh();
@@ -301,7 +331,9 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private isGitRepo = false;
   private isUnCommittedChanges = false;
   private currentBranch = '';
-  private intervalMs = 3000;
+  private pollIntervalMs = 3000;
+  private commitsToShow = 5;
+  branchPushBlacklist: string[] = [];
   private pollTimer?: NodeJS.Timeout;
 
   private validRepoText = 'This is a Git repository ✅';
@@ -326,6 +358,10 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   }
 
   async startBackGroundPoll() {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = undefined;
+    }
     if (!this.isGitInstalled || !this.isGitRepo) {
       return;
     }
@@ -362,7 +398,24 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
     // then poll
     this.pollTimer = setInterval(() => {
       void poll();
-    }, this.intervalMs);
+    }, this.pollIntervalMs);
+  }
+
+  applyConfig(config: MyExtConfig) {
+    const isPollIntervalChanged = this.pollIntervalMs !== config.pollIntervalMs;
+    this.pollIntervalMs = config.pollIntervalMs;
+    this.commitsToShow = config.commitsToShow;
+    this.branchPushBlacklist = config.branchPushBlacklist
+    if (isPollIntervalChanged) {
+      void this.startBackGroundPoll();
+    }
+  }
+
+  dispose() {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = undefined;
+    }
   }
 
   async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
@@ -406,7 +459,7 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
           arguments: [item]
         };
         if (isCurrent) {
-          item.contextValue = 'currentBranchItem';
+          item.contextValue = this.branchPushBlacklist.includes(cleanBranch) ? 'currentBranchItemBlacklisted' : 'currentBranchItem';
           this.currentBranch = cleanBranch;
         } else {
           item.contextValue = 'nonCurrentBranchItem';
@@ -415,9 +468,12 @@ class MyTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
       })
     }
 
-    if (element.contextValue === 'currentBranchItem') {
+    if (element.contextValue === 'currentBranchItem' || element.contextValue === 'currentBranchItemBlacklisted') {
       const lineItems = [];
-      const [items, hasChanges] = await Promise.all([getLastGitCommits(pwd, 5), hasUncommittedChanges(pwd)]);
+      const [items, hasChanges] = await Promise.all([
+        getLastGitCommits(pwd, this.commitsToShow),
+        hasUncommittedChanges(pwd)
+      ]);
       this.isUnCommittedChanges = hasChanges;
       if (hasChanges) {
         const treeItemUncommitted = new vscode.TreeItem('Uncommitted Changes Present', vscode.TreeItemCollapsibleState.None)
