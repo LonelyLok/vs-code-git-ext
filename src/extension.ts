@@ -269,6 +269,20 @@ export async function activate(context: vscode.ExtensionContext) {
   )
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('myExt.copyBranchName', async (element) => {
+      if (!element || !element.branchName) return;
+      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+      if (!cwd) return;
+      try {
+        await vscode.env.clipboard.writeText(element.branchName);
+        vscode.window.showInformationMessage(`Copied branch name ${element.branchName} to clipboard`);
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Copy branch name failed: ${e?.message ?? e}`);
+      }
+    })
+  )
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('myExt.copyCommitSHA', async (element) => {
       if (!element || !element.commitSHA) return;
       const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath

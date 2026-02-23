@@ -42,6 +42,10 @@
         "title": "Rename branch name"
       },
       {
+        "command": "myExt.copyBranchName",
+        "title": "Copy branch name"
+      },
+      {
         "command": "myExt.pushBranch",
         "title": "Push branch",
         "enablement": "viewItem == currentBranchItem"
@@ -142,6 +146,11 @@
           "command": "myExt.renameBranch",
           "when": "viewItem == currentBranchItem || viewItem == currentBranchItemBlacklisted",
           "group": "z_navigation@20"
+        },
+        {
+          "command": "myExt.copyBranchName",
+          "when": "viewItem == currentBranchItem || viewItem == currentBranchItemBlacklisted",
+          "group": "z_navigation@30"
         },
         {
           "command": "myExt.fetchAndResetHardOrigin",
