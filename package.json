@@ -2,7 +2,7 @@
   "name": "vs-code-git-ext",
   "displayName": "vs-code-git-ext",
   "description": "VS Code Extension for custom git commands",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "engines": {
     "vscode": "^1.104.0"
   },
