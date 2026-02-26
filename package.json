@@ -38,6 +38,10 @@
         "title": "Fetch and reset hard to origin"
       },
       {
+        "command": "myExt.rebaseFromLocal",
+        "title": "Rebase from local ..."
+      },
+      {
         "command": "myExt.renameBranch",
         "title": "Rename branch name"
       },
@@ -156,6 +160,11 @@
           "command": "myExt.fetchAndResetHardOrigin",
           "when": "viewItem == currentBranchItem || viewItem == currentBranchItemBlacklisted",
           "group": "a_navigation@0"
+        },
+        {
+          "command": "myExt.rebaseFromLocal",
+          "when": "viewItem == currentBranchItem || viewItem == currentBranchItemBlacklisted",
+          "group": "a_navigation@1"
         },
         {
           "command": "myExt.pushBranch",

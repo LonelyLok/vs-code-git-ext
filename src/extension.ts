@@ -20,7 +20,8 @@ import {
   unstageAll,
   restoreAll,
   commitWithMessage,
-  pushBranch
+  pushBranch,
+  rebaseBranchFromLocal
 } from './git-helper';
 
 type MyExtConfig = {
@@ -292,6 +293,44 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage(`Copied commit SHA ${element.commitSHA} to clipboard`);
       } catch (e: any) {
         vscode.window.showErrorMessage(`Copy commit SHA failed: ${e?.message ?? e}`);
+      }
+    })
+  )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('myExt.rebaseFromLocal', async (element) => {
+      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+      if (!cwd) return;
+      try {
+        const rawBranches = await getGitBranches(cwd);
+        const filteredBranchs: string[] = []
+        rawBranches.forEach(branch => {
+          if (branch.startsWith('*')) {
+            return;
+          }
+          filteredBranchs.push(branch);
+        })
+
+        if (!filteredBranchs.length) {
+          vscode.window.showInformationMessage('No other branches to rebase from');
+          return;
+        }
+
+        const targetBranch = await vscode.window.showQuickPick(filteredBranchs, {
+          placeHolder: 'Select branch to rebase from',
+          canPickMany: false,
+        })
+
+        if (!targetBranch) {
+          vscode.window.showInformationMessage('Rebase cancelled');
+          return;
+        }
+
+        await rebaseBranchFromLocal(cwd, targetBranch);
+        vscode.window.showInformationMessage(`Rebased current branch from ${targetBranch}`);
+        treeDataProvider.refresh();
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Rebase failed: ${e?.message ?? e}`);
       }
     })
   )
