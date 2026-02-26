@@ -200,6 +200,15 @@ function pushBranch(cwd: string, branchName: string): Promise<void> {
     });
 }
 
+function rebaseBranchFromLocal(cwd: string, branchName: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        exec(`git rebase ${branchName}`, { cwd }, (err) => {
+            if (err) return reject(err);
+            resolve();
+        });
+    })
+}
+
 
 function isGitRepo(dir: string): boolean {
     return fs.existsSync(path.join(dir, '.git'));
@@ -224,5 +233,6 @@ export {
     unstageAll,
     restoreAll,
     commitWithMessage,
-    pushBranch
+    pushBranch,
+    rebaseBranchFromLocal
 }
