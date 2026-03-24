@@ -21,7 +21,8 @@ import {
   restoreAll,
   commitWithMessage,
   pushBranch,
-  rebaseBranchFromLocal
+  rebaseBranchFromLocal,
+  amendCommit
 } from './git-helper';
 
 type MyExtConfig = {
@@ -331,6 +332,29 @@ export async function activate(context: vscode.ExtensionContext) {
         treeDataProvider.refresh();
       } catch (e: any) {
         vscode.window.showErrorMessage(`Rebase failed: ${e?.message ?? e}`);
+      }
+    })
+  )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('myExt.amendCommit', async () => {
+      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+      if (!cwd) return;
+      const commitMessage = await vscode.window.showInputBox({
+        title: 'Amend Commit Message',
+        prompt: 'Enter new commit message',
+        placeHolder: 'example',
+      });
+      if (!commitMessage) {
+        vscode.window.showErrorMessage('Commit message is required');
+        return;
+      }
+      try {
+        await amendCommit(cwd, commitMessage);
+        vscode.window.showInformationMessage(`Updated committed message: ${commitMessage}`);
+        treeDataProvider.refresh();
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Update commit message failed: ${e?.message ?? e}`);
       }
     })
   )

@@ -79,6 +79,10 @@
       {
         "command": "myExt.restoreAllChanges",
         "title": "Restore all changes"
+      },
+      {
+        "command": "myExt.amendCommit",
+        "title": "Update commit message"
       }
     ],
     "viewsContainers": {
@@ -132,9 +136,14 @@
           "group": "a_navigation"
         },
         {
+          "command": "myExt.amendCommit",
+          "when": "viewItem == latestCommitItem",
+          "group": "b_navigation"
+        },
+        {
           "command": "myExt.copyCommitSHA",
           "when": "viewItem == latestCommitItem || viewItem == commitItem",
-          "group": "b_navigation"
+          "group": "c_navigation"
         },
         {
           "command": "myExt.deleteBranchLocal",
