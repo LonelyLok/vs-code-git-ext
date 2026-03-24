@@ -214,6 +214,15 @@ function isGitRepo(dir: string): boolean {
     return fs.existsSync(path.join(dir, '.git'));
 }
 
+function amendCommit(cwd: string, message: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        exec(`git commit --amend -m "${message}"`, { cwd }, (err) => {
+            if (err) return reject(err);
+            resolve();
+        })
+    });
+}
+
 export {
     isGitInstalled,
     getGitBranches,
@@ -234,5 +243,6 @@ export {
     restoreAll,
     commitWithMessage,
     pushBranch,
-    rebaseBranchFromLocal
+    rebaseBranchFromLocal,
+    amendCommit
 }
